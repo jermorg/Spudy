@@ -9,8 +9,8 @@ const discordWebhook = new WebhookClient({ url: process.env.DISCORD_WEBHOOK });
 
 // Consts
 const MAX_FILE_SIZE_IN_BITE = 10000000;
-const TEXT_FOR_FILE_SO_BIG = process.env.TEXT_FOR_FILE_SO_BIG;
-const TEXT_FOR_NO_OPTIMAL_FILE = process.env.TEXT_FOR_NO_OPTIMAL_FILE;
+const TEXT_FOR_FILE_SO_BIG = 'File so big';
+const TEXT_FOR_NO_OPTIMAL_FILE = 'No optimal file';
 
 // Events
 telegramBot.on('message', async (msg) => {
