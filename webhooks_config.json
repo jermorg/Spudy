@@ -1,0 +1,23 @@
+{
+    "webhooks": {
+        "webhook1": "https://discord.com/api/webhooks/1234567890123456789/AbCdEfGhIjKlMnOpQrStUvWxYz_1234567890AbCdEfGhIjKlMnOpQrStUvWxYz1",
+        "webhook2": "https://discord.com/api/webhooks/1234567890123456789/AbCdEfGhIjKlMnOpQrStUvWxYz_1234567890AbCdEfGhIjKlMnOpQrStUvWxYz2",
+        "webhook3": "https://discord.com/api/webhooks/1234567890123456789/AbCdEfGhIjKlMnOpQrStUvWxYz_1234567890AbCdEfGhIjKlMnOpQrStUvWxYz3"
+    },
+    "users": {
+        "all": [],
+        "telegram_user_id1": [
+            "webhook1",
+            "webhook2"
+        ],
+        "telegram_user_id2": [
+            "webhook3",
+            "webhook1"
+        ],
+        "telegram_user_id3": [
+            "webhook1",
+            "webhook2",
+            "webhook3"
+        ]
+    }
+}
