@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Spudy Control Panel</title>
+    <!-- Tailwind CSS v4 -->
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+</head>
+<body class="bg-gray-50/50 min-h-screen pb-12 text-gray-800 font-sans">
+
+    <!-- Головний Хедер -->
+    <header class="max-w-5xl mx-auto pt-8 px-4 mb-6">
+        <div class="flex items-center justify-between border-b border-gray-200 pb-4">
+            <div>
+                <h1 class="text-2xl font-bold tracking-tight text-gray-900">🥔 Spudy Bot</h1>
+                <p class="text-sm text-gray-500 mt-1">Панель керування self-hosted Телеграм-ботом</p>
+            </div>
+            <div class="flex items-center gap-2">
+                <span class="w-2.5 h-2.5 rounded-full bg-green-500 animate-pulse"></span>
+                <span class="text-xs font-semibold text-gray-600 bg-gray-100 px-2.5 py-1 rounded-full uppercase tracking-wider">Active</span>
+            </div>
+        </div>
+    </header>
+
+    <!-- Основний контент (Двоколонкова адаптивна сітка) -->
+    <main class="max-w-5xl mx-auto px-4 grid grid-cols-1 md:grid-cols-2 gap-6">
+        
+        <!-- ЛІВА КОЛОНКА: Налаштування API та Системи -->
+        <div class="space-y-6">
+            
+            <!-- БЛОК 1: Ключі API -->
+            <div class="border border-gray-200 p-5 rounded-xl bg-white shadow-sm">
+                <h3 class="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                    🔑 API Connections
+                </h3>
+
+                <div class="space-y-4">
+                    <!-- Telegram API Token -->
+                    <div>
+                        <label class="block mb-1">
+                            <span class="font-medium text-gray-700 text-sm">Telegram Bot Token</span>
+                            <span class="text-xs text-gray-400 font-mono block">TELEGRAM_TOKEN</span>
+                        </label>
+                        <div class="relative">
+                            <input type="password" id="telegram_token" placeholder="••••••••••••••••••••••••••••" 
+                                class="border border-gray-200 p-2.5 rounded-lg w-full focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none transition-all pr-10 text-sm text-gray-700">
+                            <button type="button" onclick="togglePasswordVisibility()" class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors cursor-pointer text-sm">
+                                👁️
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Cobalt Link -->
+                    <div>
+                        <label class="block mb-1">
+                            <span class="font-medium text-gray-700 text-sm">Cobalt API Link</span>
+                            <span class="text-xs text-gray-400 font-mono block">COBALT_LOCAL_URL</span>
+                        </label>
+                        <div class="flex items-center gap-2">
+                            <input type="text" id="cobalt_url" placeholder="http://localhost:9013" 
+                                class="border border-gray-200 p-2.5 rounded-lg w-full focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none transition-all text-sm text-gray-700">
+                            
+                            <button id="test_cobalt_btn" onclick="testCobaltConnection()" class="bg-blue-500 hover:bg-blue-600 text-white font-medium px-4 py-2.5 rounded-lg transition-all flex items-center justify-center min-w-[75px] h-[42px] text-sm shadow-sm active:scale-95 cursor-pointer">
+                                <span id="btn_text">Test</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- БЛОК 2: Свічі типів медіа -->
+            <div class="border border-gray-200 p-5 rounded-xl bg-white shadow-sm">
+                <h3 class="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                    ⚙️ Routing & Media Settings
+                </h3>
+                
+                <div class="space-y-3 divide-y divide-gray-100">
+                    <!-- MESSAGE_TEXT -->
+                    <div class="flex items-center justify-between pt-3 first:pt-0">
+                        <div>
+                            <span class="font-medium text-gray-700 block text-sm">Текстові повідомлення</span>
+                            <span class="text-xs text-gray-400 font-mono">MESSAGE_TEXT</span>
+                        </div>
+                        <label class="relative inline-flex items-center cursor-pointer">
+                            <input type="checkbox" id="MESSAGE_TEXT" class="sr-only peer" checked>
+                            <div class="w-11 h-6 bg-gray-200 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-500"></div>
+                        </label>
+                    </div>
+
+                    <!-- MESSAGE_PHOTO -->
+                    <div class="flex items-center justify-between pt-3">
+                        <div>
+                            <span class="font-medium text-gray-700 block text-sm">Фотографії та зображення</span>
+                            <span class="text-xs text-gray-400 font-mono">MESSAGE_PHOTO</span>
+                        </div>
+                        <label class="relative inline-flex items-center cursor-pointer">
+                            <input type="checkbox" id="MESSAGE_PHOTO" class="sr-only peer" checked>
+                            <div class="w-11 h-6 bg-gray-200 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-500"></div>
+                        </label>
+                    </div>
+
+                    <!-- MESSAGE_VIDEO -->
+                    <div class="flex items-center justify-between pt-3">
+                        <div>
+                            <span class="font-medium text-gray-700 block text-sm">Відеофайли</span>
+                            <span class="text-xs text-gray-400 font-mono">MESSAGE_VIDEO</span>
+                        </div>
+                        <label class="relative inline-flex items-center cursor-pointer">
+                            <input type="checkbox" id="MESSAGE_VIDEO" class="sr-only peer" checked>
+                            <div class="w-11 h-6 bg-gray-200 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-500"></div>
+                        </label>
+                    </div>
+
+                    <!-- MESSAGE_GIF -->
+                    <div class="flex items-center justify-between pt-3">
+                        <div>
+                            <span class="font-medium text-gray-700 block text-sm">Анімації (GIF)</span>
+                            <span class="text-xs text-gray-400 font-mono">MESSAGE_GIF</span>
+                        </div>
+                        <label class="relative inline-flex items-center cursor-pointer">
+                            <input type="checkbox" id="MESSAGE_GIF" class="sr-only peer" checked>
+                            <div class="w-11 h-6 bg-gray-200 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-500"></div>
+                        </label>
+                    </div>
+
+                    <!-- MESSAGE_VIDEO_NOTE -->
+                    <div class="flex items-center justify-between pt-3">
+                        <div>
+                            <span class="font-medium text-gray-700 block text-sm">Кружечки (Відеонотатки)</span>
+                            <span class="text-xs text-gray-400 font-mono">MESSAGE_VIDEO_NOTE</span>
+                        </div>
+                        <label class="relative inline-flex items-center cursor-pointer">
+                            <input type="checkbox" id="MESSAGE_VIDEO_NOTE" class="sr-only peer" checked>
+                            <div class="w-11 h-6 bg-gray-200 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-500"></div>
+                        </label>
+                    </div>
+
+                    <!-- TIKTOK -->
+                    <div class="flex items-center justify-between pt-3">
+                        <div>
+                            <span class="font-medium text-gray-700 block text-sm">Парсинг TikTok лінків</span>
+                            <span class="text-xs text-gray-400 font-mono">TIKTOK</span>
+                        </div>
+                        <label class="relative inline-flex items-center cursor-pointer">
+                            <input type="checkbox" id="TIKTOK" class="sr-only peer" checked>
+                            <div class="w-11 h-6 bg-gray-200 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-500"></div>
+                        </label>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ПРАВА КОЛОНКА: База Даних (Вебхуки та Юзери) -->
+        <div class="space-y-6">
+            
+            <!-- БЛОК 3: Керування Вебхуками (Таблиця webhooks) -->
+            <div class="border border-gray-200 p-5 rounded-xl bg-white shadow-sm">
+                <h3 class="text-lg font-semibold text-gray-900 mb-2 flex items-center gap-2">
+                    📢 Discord Webhooks
+                </h3>
+                <p class="text-xs text-gray-400 mb-4">Створення та перелік доступних каналів відправки</p>
+
+                <!-- Форма додавання вебхука -->
+                <form id="webhook_form" onsubmit="addWebhook(event)" class="bg-gray-50 p-3 rounded-lg border border-gray-100 gap-2 grid grid-cols-2 mb-4">
+                    <input type="text" id="wh_id" placeholder="ID (напр: mimirmemes)" required 
+                        class="border border-gray-200 p-2 rounded-md bg-white text-xs outline-none focus:border-blue-500">
+                    <input type="text" id="wh_name" placeholder="Назва (напр: Мімір Мемі)" required 
+                        class="border border-gray-200 p-2 rounded-md bg-white text-xs outline-none focus:border-blue-500">
+                    <input type="url" id="wh_url" placeholder="Discord Webhook URL" required 
+                        class="border border-gray-200 p-2 rounded-md bg-white text-xs col-span-2 outline-none focus:border-blue-500">
+                    <button type="submit" class="bg-gray-900 hover:bg-gray-800 text-white text-xs font-medium py-2 rounded-md col-span-2 cursor-pointer transition-colors">
+                        + Додати Вебхук
+                    </button>
+                </form>
+
+                <!-- Список наявних вебхуків -->
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-xs border-collapse">
+                        <thead>
+                            <tr class="border-b border-gray-100 text-gray-400 font-medium">
+                                <th class="pb-2 font-mono">ID</th>
+                                <th class="pb-2">Назва</th>
+                                <th class="pb-2 text-right">Дія</th>
+                            </tr>
+                        </thead>
+                        <tbody id="webhooks_list" class="divide-y divide-gray-50 text-gray-700">
+                            <!-- Рядки рендеряться через JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- БЛОК 4: Доступ Користувачів (Таблиця user_webhooks) -->
+            <div class="border border-gray-200 p-5 rounded-xl bg-white shadow-sm">
+                <h3 class="text-lg font-semibold text-gray-900 mb-2 flex items-center gap-2">
+                    👥 User Access Control
+                </h3>
+                <p class="text-xs text-gray-400 mb-4">Прив'язка Telegram ID користувачів до конкретних вебхуків</p>
+
+                <!-- Форма мапінгу прав -->
+                <form id="access_form" onsubmit="assignAccess(event)" class="bg-gray-50 p-3 rounded-lg border border-gray-100 flex flex-col gap-2 mb-4">
+                    <div class="grid grid-cols-2 gap-2">
+                        <input type="text" id="access_tg_id" placeholder="Telegram User ID (або 'all')" required 
+                            class="border border-gray-200 p-2 rounded-md bg-white text-xs outline-none focus:border-blue-500">
+                        <select id="access_webhook_select" required 
+                            class="border border-gray-200 p-2 rounded-md bg-white text-xs outline-none focus:border-blue-500">
+                            <option value="" disabled selected>Оберіть вебхук</option>
+                            <!-- Опції додаються автоматично з бази -->
+                        </select>
+                    </div>
+                    <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium py-2 rounded-md cursor-pointer transition-colors">
+                        Надати доступ
+                    </button>
+                </form>
+
+                <!-- Список зв'язків -->
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-xs border-collapse">
+                        <thead>
+                            <tr class="border-b border-gray-100 text-gray-400 font-medium">
+                                <th class="pb-2">Telegram ID</th>
+                                <th class="pb-2">Дозволений Вебхук</th>
+                                <th class="pb-2 text-right">Дія</th>
+                            </tr>
+                        </thead>
+                        <tbody id="access_list" class="divide-y divide-gray-50 text-gray-700">
+                            <!-- Рядки рендеряться через JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <!-- Нижня плашка збереження конфігурації -->
+    <footer class="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 py-3 shadow-lg z-50">
+        <div class="max-w-5xl mx-auto px-4 flex items-center justify-between">
+            <span class="text-xs text-gray-400 italic">Зміни медіа-тоглів застосовуються автоматично</span>
+            <button onclick="saveGlobalConfig()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-medium px-5 py-2 rounded-lg text-sm transition-all active:scale-95 shadow-sm cursor-pointer">
+                Зберегти налаштування API
+            </button>
+        </div>
+    </footer>
+
+    <!-- Скрипти керування інтерфейсом та даними -->
+    <script>
+        // Імітація початкових даних з бази SQLite (для демонстрації)
+        let database = {
+            webhooks: [
+                { id: "mimirmemes", name: "mimirmemes", url: "https://discord.com/api/webhooks/..." },
+                { id: "ponybrony", name: "ponybrony", url: "https://discord.com/api/webhooks/..." },
+                { id: "memesarhive", name: "memesarhive", url: "https://discord.com/api/webhooks/..." }
+            ],
+            user_webhooks: [
+                { tg_id: "all", webhook_id: "memesarhive" },
+                { tg_id: "6078410715", webhook_id: "mimirmemes" },
+                { tg_id: "6078410715", webhook_id: "ponybrony" }
+            ]
+        };
+
+        // Ініціалізація інтерфейсу при завантаженні
+        document.addEventListener("DOMContentLoaded", () => {
+            renderWebhooks();
+            renderAccessList();
+        });
+
+        // 1. Функція приховування/показу токена
+        function togglePasswordVisibility() {
+            const input = document.getElementById('telegram_token');
+            input.type = input.type === 'password' ? 'text' : 'password';
+        }
+
+        // 2. Тест з'єднання з Cobalt
+        async function testCobaltConnection() {
+            const btn = document.getElementById('test_cobalt_btn');
+            const btnText = document.getElementById('btn_text');
+            const cobaltUrl = document.getElementById('cobalt_url').value;
+
+            if (!cobaltUrl) {
+                alert('Будь ласка, введіть лінк перед тестом');
+                return;
+            }
+
+            btn.disabled = true;
+            btn.className = "bg-gray-400 text-white font-medium px-4 py-2.5 rounded-lg flex items-center justify-center min-w-[75px] h-[42px] text-sm animate-pulse cursor-not-allowed";
+            btnText.innerText = "•••";
+
+            try {
+                // Штучний пінг сервера
+                await new Promise(resolve => setTimeout(resolve, 1000)); 
+                const isSuccess = cobaltUrl.startsWith('http'); 
+
+                if (isSuccess) {
+                    btn.className = "bg-green-500 text-white font-medium px-4 py-2.5 rounded-lg flex items-center justify-center min-w-[75px] h-[42px] text-sm shadow-sm";
+                    btnText.innerText = "✅";
+                } else {
+                    btn.className = "bg-red-500 text-white font-medium px-4 py-2.5 rounded-lg flex items-center justify-center min-w-[75px] h-[42px] text-sm shadow-sm";
+                    btnText.innerText = "❌";
+                }
+            } catch (err) {
+                btn.className = "bg-red-500 text-white font-medium px-4 py-2.5 rounded-lg flex items-center justify-center min-w-[75px] h-[42px] text-sm shadow-sm";
+                btnText.innerText = "❌";
+            }
+
+            setTimeout(() => {
+                btn.disabled = false;
+                btn.className = "bg-blue-500 hover:bg-blue-600 text-white font-medium px-4 py-2.5 rounded-lg transition-all flex items-center justify-center min-w-[75px] h-[42px] text-sm shadow-sm active:scale-95 cursor-pointer";
+                btnText.innerText = "Test";
+            }, 2500);
+        }
+
+        // 3. Рендер таблиці Вебхуків та оновлення селекту вибору
+        function renderWebhooks() {
+            const container = document.getElementById('webhooks_list');
+            const select = document.getElementById('access_webhook_select');
+            
+            container.innerHTML = '';
+            // Очищуємо селект, лишаємо перший дефолтний пункт
+            select.innerHTML = '<option value="" disabled selected>Оберіть вебхук</option>';
+
+            database.webhooks.forEach(wh => {
+                // Рендер таблиці
+                container.innerHTML += `
+                    <tr class="hover:bg-gray-50/80 transition-colors">
+                        <td class="py-2.5 font-mono text-gray-500">${wh.id}</td>
+                        <td class="py-2.5 font-medium">${wh.name}</td>
+                        <td class="py-2.5 text-right">
+                            <button onclick="deleteWebhook('${wh.id}')" class="text-red-500 hover:text-red-700 font-medium cursor-pointer">Видалити</button>
+                        </td>
+                    </tr>
+                `;
+                // Додавання опції в селект другої форми
+                select.innerHTML += `<option value="${wh.id}">${wh.name} (${wh.id})</option>`;
+            });
+        }
+
+        // 4. Додавання нового вебхука (Емуляція INSERT)
+        function addWebhook(e) {
+            e.preventDefault();
+            const id = document.getElementById('wh_id').value.trim();
+            const name = document.getElementById('wh_name').value.trim();
+            const url = document.getElementById('wh_url').value.trim();
+
+            if(database.webhooks.some(w => w.id === id)) {
+                alert('Вебхук з таким ID вже існує!');
+                return;
+            }
+
+            database.webhooks.push({ id, name, url });
+            document.getElementById('webhook_form').reset();
+            renderWebhooks();
+            
+            // Тут буде твій: await fetch('/api/webhooks', { method: 'POST', body: ... })
+        }
+
+        // 5. Видалення вебхука (Емуляція DELETE)
+        function deleteWebhook(id) {
+            if(!confirm(`Видалити вебхук ${id}? Це також прибере доступи користувачів до нього.`)) return;
+            
+            database.webhooks = database.webhooks.filter(w => w.id !== id);
+            database.user_webhooks = database.user_webhooks.filter(uw => uw.webhook_id !== id);
+            
+            renderWebhooks();
+            renderAccessList();
+
+            // Тут буде твій: await fetch(`/api/webhooks/${id}`, { method: 'DELETE' })
+        }
+
+        // 6. Рендер таблиці мапінгу доступу
+        function renderAccessList() {
+            const container = document.getElementById('access_list');
+            container.innerHTML = '';
+
+            database.user_webhooks.forEach(row => {
+                container.innerHTML += `
+                    <tr class="hover:bg-gray-50/80 transition-colors">
+                        <td class="py-2.5">
+                            <span class="${row.tg_id === 'all' ? 'bg-amber-100 text-amber-800 px-2 py-0.5 rounded text-[10px] font-bold uppercase' : 'font-mono text-gray-600'}">
+                                ${row.tg_id}
+                            </span>
+                        </td>
+                        <td class="py-2.5 font-mono text-xs text-blue-600">${row.webhook_id}</td>
+                        <td class="py-2.5 text-right">
+                            <button onclick="deleteAccess('${row.tg_id}', '${row.webhook_id}')" class="text-gray-400 hover:text-red-500 cursor-pointer transition-colors">✕</button>
+                        </td>
+                    </tr>
+                `;
+            });
+        }
+
+        // 7. Надання доступу юзеру до вебхука
+        function assignAccess(e) {
+            e.preventDefault();
+            const tg_id = document.getElementById('access_tg_id').value.trim();
+            const webhook_id = document.getElementById('access_webhook_select').value;
+
+            if(database.user_webhooks.some(uw => uw.tg_id === tg_id && uw.webhook_id === webhook_id)) {
+                alert('Цей користувач вже має доступ до цього вебхука!');
+                return;
+            }
+
+            database.user_webhooks.push({ tg_id, webhook_id });
+            document.getElementById('access_form').reset();
+            renderAccessList();
+
+            // Тут буде твій: await fetch('/api/user-webhooks', { method: 'POST', body: ... })
+        }
+
+        // 8. Видалення зв'язку доступу
+        function deleteAccess(tg_id, webhook_id) {
+            database.user_webhooks = database.user_webhooks.filter(uw => !(uw.tg_id === tg_id && uw.webhook_id === webhook_id));
+            renderAccessList();
+
+            // Тут буде твій: await fetch(`/api/user-webhooks/${tg_id}/${webhook_id}`, { method: 'DELETE' })
+        }
+
+        // 9. Збереження глобальних токенів (Екологічна відправка на Express)
+        function saveGlobalConfig() {
+            const token = document.getElementById('telegram_token').value;
+            const cobalt = document.getElementById('cobalt_url').value;
+            
+            // Логіка збору булевих налаштувань медіа
+            const mediaSettings = {
+                MESSAGE_TEXT: document.getElementById('MESSAGE_TEXT').checked,
+                MESSAGE_PHOTO: document.getElementById('MESSAGE_PHOTO').checked,
+                MESSAGE_VIDEO: document.getElementById('MESSAGE_VIDEO').checked,
+                MESSAGE_GIF: document.getElementById('MESSAGE_GIF').checked,
+                MESSAGE_VIDEO_NOTE: document.getElementById('MESSAGE_VIDEO_NOTE').checked,
+                TIKTOK: document.getElementById('TIKTOK').checked,
+            };
+
+            console.log("Saving API Data:", { token, cobalt, mediaSettings });
+            alert("Налаштування API успішно відправлені в базу конфігу!");
+            
+            // Тут робиш стандартний POST запит на свій бекенд:
+            // fetch('/api/config', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(...) })
+        }
+    </script>
+</body>
+</html>
