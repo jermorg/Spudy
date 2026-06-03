@@ -14,7 +14,7 @@ let GLOBAL_CONFIG = {};
 function loadConfig() {
     fetch('/api/config')
         .then(response => {
-            if (!response.ok) throw new Error('Помилка мережі');
+            if (!response.ok) throw new Error('Network error');
             return response.json();
         })
         .then(data => {
@@ -36,7 +36,7 @@ function loadConfig() {
             }
         })
         .catch(error => {
-            console.error('Не вдалося завантажити конфігурацію:', error);
+            console.error('Error loading config:', error);
         });
 }
 

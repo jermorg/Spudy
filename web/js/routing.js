@@ -15,7 +15,7 @@ function updateRouting() {
         updatedData[option.toLowerCase()] = isChecked;
     });
 
-    console.log('[API PUT] Оновлення налаштувань роутингу:', updatedData);
+    console.log('[API PUT] Updating routing settings:', updatedData);
 
     fetch('/api/settings', {
         method: 'PUT',
@@ -25,8 +25,8 @@ function updateRouting() {
     .then(res => res.json())
     .then(data => {
         if (data.success) {
-            console.log('Налаштування роутингу успішно збережено.');
+            console.log('Routing settings successfully saved.');
         }
     })
-    .catch(err => console.error('Помилка при збереженні роутингу:', err));
+    .catch(err => console.error('Error saving routing settings:', err));
 }

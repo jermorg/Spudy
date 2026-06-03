@@ -3,7 +3,7 @@ function saveGlobalConfig() {
     const tokenValue = $tokenInput.val() ? $tokenInput.val().trim() : '';
 
     if (!tokenValue) {
-        alert('Будь ласка, введіть токен бота перед збереженням.');
+        alert('Please enter the bot token before saving.');
         return;
     }
 
@@ -23,12 +23,12 @@ function saveGlobalConfig() {
                 if (dialog) {
                     dialog.showModal();
                 } else {
-                    alert('Токен збережено! Перезапустіть Docker-контейнер.');
+                    alert('Token saved! Please restart the Docker container.');
                 }
             }
         },
         error: function(xhr) {
-            const errorMsg = xhr.responseJSON?.error || 'Помилка при збереженні токена';
+            const errorMsg = xhr.responseJSON?.error || 'Error saving token';
             alert('❌ ' + errorMsg);
         },
         complete: function() {

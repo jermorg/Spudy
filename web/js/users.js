@@ -24,10 +24,10 @@ function renderUsersTable(users, allWebhooks, webhookNames) {
                 </label>`;
         });
 
-        const buttonText = selectedNames.length > 0 ? selectedNames.join(', ') : 'Виберіть вебхуки...';
+        const buttonText = selectedNames.length > 0 ? selectedNames.join(', ') : 'Select Webhooks...';
         const textClass = selectedNames.length > 0 ? 'text-gray-200' : 'text-gray-400';
         const userbgColorAHover = isStaticUser ? 'bg-blue-900/10 hover:bg-blue-900/20' : 'hover:bg-gray-800/10';
-        const userDisplayId = isStaticUser ? '0 (Будь-який користувач)' : userId;
+        const userDisplayId = isStaticUser ? '0 (Any User)' : userId;
         
         const deleteButtonHtml = isStaticUser ? '' 
             : `<button type="button" onclick="deleteUserCompletely('${userId}')" class="text-gray-500 hover:text-rose-400 transition-colors text-[11px] cursor-pointer font-medium">Delete</button>`;
@@ -82,13 +82,13 @@ function handleTableWebhookToggle(checkbox) {
         selected.push($(this).next('span').text().trim());
     });
     
-    $row.find('.selected-text').text(selected.length > 0 ? selected.join(', ') : 'Виберіть вебхуки...');
+    $row.find('.selected-text').text(selected.length > 0 ? selected.join(', ') : 'Select Webhooks...');
     $row.find('button:first').toggleClass('text-gray-200', selected.length > 0).toggleClass('text-gray-400', selected.length === 0);
 };
 
 function deleteUserCompletely(userId) {
     if (userId.toLowerCase() === 'all' || userId === '0') return;
-    if (!confirm(`Видалити користувача ${userId}?`)) return;
+    if (!confirm(`Delete user ${userId}?`)) return;
 
     fetch(`/api/users/${encodeURIComponent(userId)}`, { method: 'DELETE' })
         .then(() => loadConfig())

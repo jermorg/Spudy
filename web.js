@@ -70,17 +70,41 @@ if (!initSettings) {
 
 app.use(express.static(path.join(__dirname, 'web')));
 
-app.get('/api/dashboard/logs', (req, res) => {
-    try {
-        const logs = db.prepare('SELECT * FROM dashboard_logs ORDER BY created_at DESC LIMIT 50').all();
-        res.json(logs);
-    } catch (err) {
-        res.status(500).json({ error: err.message });
+function checkToken(req, res, next) {
+    if (req.path.startsWith('/api/') || req.path.includes('.')) {
+        return next();
     }
+
+    try {
+        const config = db.prepare('SELECT bot_token FROM global_settings WHERE id = 1').get();
+        const hasToken = config && config.bot_token && config.bot_token.trim() !== '';
+        const isSetupPage = req.path === '/setup';
+
+        console.log(hasToken, isSetupPage, req.path);
+
+        if (!hasToken) {
+            if (!isSetupPage) return res.redirect('/setup');
+            return next();
+        } else {
+            if (isSetupPage) return res.redirect('/');
+            return next();
+        }
+    } catch (err) {
+        if (req.path !== '/setup') return res.redirect('/setup');
+        next();
+    }
+}
+
+app.get('/', checkToken, (req, res) => {
+    res.sendFile(__dirname + '/web/dashboard.html');
 });
 
-app.get('/settings', (req, res) => {
+app.get('/settings', checkToken, (req, res) => {
     res.sendFile(__dirname + '/web/settings.html');
+});
+
+app.get('/setup', checkToken, (req, res) => {
+    res.sendFile(__dirname + '/web/setup.html');
 });
 
 // 1. Get Config
@@ -115,6 +139,16 @@ app.get('/api/config', (req, res) => {
         };
 
         res.json({ webhooks, webhookNames, users, settings });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.get('/api/dashboard/logs', (req, res) => {
+    try {
+        const limit = parseInt(req.query.limit, 10) || 50;
+        const logs = db.prepare('SELECT * FROM dashboard_logs ORDER BY created_at DESC LIMIT ?').all(limit);
+        res.json(logs);
     } catch (err) {
         res.status(500).json({ error: err.message });
     }

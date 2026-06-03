@@ -30,7 +30,7 @@ console.log('[BOT][✅] BOT TOKEN FOUND');
 const telegramBot = new TelegramBot(TELEGRAM_TOKEN, { polling: true });
 
 // Consts
-const API_BASE = `http://localhost:${process.env.WEB_PORT || 3000}/api`;
+const API_BASE = `http://localhost:${process.env.WEB_PORT || 4000}/api`;
 const MAX_FILE_SIZE_IN_BITE = 10000000;
 const TEXT_FOR_FILE_SO_BIG = 'File so big';
 const TEXT_FOR_NO_OPTIMAL_FILE = 'No optimal file';
@@ -79,6 +79,9 @@ telegramBot.on('message', async (msg) => {
     if (!msg.from) return;
     const userId = msg.from.id.toString();
 
+    let detectedType = null;
+    let payload = null;
+
     try {
         const configResponse = await axios.get(`${API_BASE}/config`);
         const { webhooks, webhookNames, users, settings } = configResponse.data;
@@ -93,27 +96,24 @@ telegramBot.on('message', async (msg) => {
 
         if (!available.length) return;
 
-        let payload = null;
-        let detectedType = null;
-
         if (msg.photo && settings.MESSAGE_PHOTO) {
             const media = await getTelegramMediaUrl(msg);
-            if (media.ok) { payload = { files: [{ attachment: media.url }] }; detectedType = 'MESSAGE_PHOTO'; }
+            if (media.ok) { payload = { files: [{ attachment: media.url }] }; detectedType = 'MESSAGE_PHOTO'; } else { return telegramBot.sendMessage(msg.chat.id, 'File too big ('); console.log('[BOT][❌] File too big'); }
         } else if (msg.video && settings.MESSAGE_VIDEO) {
             const media = await getTelegramMediaUrl(msg);
-            if (media.ok) { payload = { files: [{ attachment: media.url }] }; detectedType = 'MESSAGE_VIDEO'; }
+            if (media.ok) { payload = { files: [{ attachment: media.url }] }; detectedType = 'MESSAGE_VIDEO'; } else { return telegramBot.sendMessage(msg.chat.id, 'File too big ('); console.log('[BOT][❌] File too big'); } 
         } else if (msg.document && settings.MESSAGE_GIF) {
             const media = await getTelegramMediaUrl(msg);
-            if (media.ok) { payload = { files: [{ attachment: media.url }] }; detectedType = 'MESSAGE_GIF'; }
+            if (media.ok) { payload = { files: [{ attachment: media.url }] }; detectedType = 'MESSAGE_GIF'; } else { return telegramBot.sendMessage(msg.chat.id, 'File too big ('); console.log('[BOT][❌] File too big'); }
         } else if (msg.video_note && settings.MESSAGE_VIDEO_NOTE) {
             const media = await getTelegramMediaUrl(msg);
-            if (media.ok) { payload = { files: [{ attachment: media.url }] }; detectedType = 'MESSAGE_VIDEO_NOTE'; }
+            if (media.ok) { payload = { files: [{ attachment: media.url }] }; detectedType = 'MESSAGE_VIDEO_NOTE'; } else { return telegramBot.sendMessage(msg.chat.id, 'File too big ('); console.log('[BOT][❌] File too big'); }
         } else if (msg.text) {
             if (msg.text.includes('tiktok.com') && settings.TIKTOK) {
+                detectedType = 'TIKTOK';
                 const files = await downloadTikTokVideo(msg.text);
                 if (files) {
                     payload = { files };
-                    detectedType = 'TIKTOK';
                 } else {
                     return telegramBot.sendMessage(msg.chat.id, '❌');
                 }
@@ -161,6 +161,8 @@ telegramBot.on('message', async (msg) => {
 
     } catch (err) {
         console.error("[BOT][❌] error while processing message:", err.message);
+        await telegramBot.sendMessage(msg.chat.id, '❌');
+        logToDashboard({ msg, msgType: detectedType, payload, webhookName: 'null', status: false, errorMsg: err.message });
     }
 });
 
