@@ -1,0 +1,172 @@
+<script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+<body class="bg-slate-900 text-slate-100 min-h-screen flex items-center justify-center p-4">
+
+    <div class="max-w-xl w-full bg-slate-800 border border-slate-700 rounded-2xl shadow-2xl p-6 md:p-8">
+        
+        <div class="text-center mb-8">
+            <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-blue-500/10 text-blue-400 mb-4 animate-bounce">
+                ⚙️
+            </div>
+            <h1 class="text-3xl font-bold tracking-tight bg-gradient-to-r from-blue-400 to-indigo-400 bg-clip-text text-transparent">
+                Ласкаво просимо до Spudy!
+            </h1>
+            <p class="text-slate-400 mt-2">
+                Схоже, це перший запуск панелі керування. Давайте налаштуємо вашого бота за пару кроків.
+            </p>
+        </div>
+
+        <div class="grid grid-cols-2 gap-2 p-1 bg-slate-950 rounded-xl mb-6">
+            <button id="tab-manual" onclick="switchMode('manual')" class="py-2.5 text-sm font-medium rounded-lg transition-all duration-200 cursor-pointer text-white bg-blue-600 shadow-sm">
+                ✍️ Ручне налаштування
+            </button>
+            <button id="tab-import" onclick="switchMode('import')" class="py-2.5 text-sm font-medium rounded-lg transition-all duration-200 cursor-pointer text-slate-400 hover:text-slate-200">
+                📥 Імпорт конфігу
+            </button>
+        </div>
+
+        <form id="setup-form" onsubmit="handleSubmit(event)">
+            
+            <div id="section-manual" class="space-y-5">
+                <div>
+                    <label class="block text-sm font-medium text-slate-300 mb-1.5">
+                        Telegram Bot Token <span class="text-rose-500">*</span>
+                    </label>
+                    <input type="text" id="bot_token" placeholder="1234567890:ABCdefGhIJKlmNoPQRsTUVwxyZ" 
+                           class="w-full bg-slate-950 border border-slate-700 rounded-lg px-4 py-2.5 text-slate-100 placeholder-slate-600 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all">
+                    <p class="text-xs text-slate-500 mt-1">Отримайте токен у офіційного бота <a href="https://t.me/BotFather" target="_blank" class="text-blue-400 hover:underline">@BotFather</a></p>
+                </div>
+
+            </div>
+
+            <div id="section-import" class="space-y-5 hidden">
+
+                <div class="relative flex items-center justify-center p-4 border-2 border-dashed border-slate-700 rounded-xl hover:border-slate-500 transition-all bg-slate-950/50">
+                    <input type="file" id="import_file" accept=".json" onchange="handleFileSelect(event)" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer">
+                    <div class="text-center pointer-events-none">
+                        <span class="text-2xl">📄</span>
+                        <p id="file-label" class="text-sm text-slate-400 mt-1">Або виберіть файл <code class="text-blue-400">config.json</code></p>
+                    </div>
+                </div>
+            </div>
+
+            <hr class="border-slate-700/50 my-6">
+
+            <button type="submit" class="w-full bg-blue-600 hover:bg-blue-500 active:bg-blue-700 text-white font-semibold py-3 px-4 rounded-xl shadow-lg shadow-blue-600/20 transition-all cursor-pointer flex items-center justify-center gap-2">
+                🚀 Зберегти та запустити ноду
+            </button>
+        </form>
+
+    </div>
+
+    <script>
+        let currentMode = 'manual';
+
+        // Перемикання вкладок (Ручне / Імпорт)
+        function switchMode(mode) {
+            currentMode = mode;
+            const tabManual = document.getElementById('tab-manual');
+            const tabImport = document.getElementById('tab-import');
+            const secManual = document.getElementById('section-manual');
+            const secImport = document.getElementById('section-import');
+
+            if (mode === 'manual') {
+                tabManual.className = 'py-2.5 text-sm font-medium rounded-lg transition-all duration-200 cursor-pointer text-white bg-blue-600 shadow-sm';
+                tabImport.className = 'py-2.5 text-sm font-medium rounded-lg transition-all duration-200 cursor-pointer text-slate-400 hover:text-slate-200';
+                secManual.classList.remove('hidden');
+                secImport.classList.add('hidden');
+            } else {
+                tabImport.className = 'py-2.5 text-sm font-medium rounded-lg transition-all duration-200 cursor-pointer text-white bg-blue-600 shadow-sm';
+                tabManual.className = 'py-2.5 text-sm font-medium rounded-lg transition-all duration-200 cursor-pointer text-slate-400 hover:text-slate-200';
+                secManual.classList.add('hidden');
+                secImport.classList.remove('hidden');
+            }
+        }
+
+        // Обробка вибору файлу імпорту
+        function handleFileSelect(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            
+            document.getElementById('file-label').textContent = `Вибрано: ${file.name}`;
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                document.getElementById('import_json').value = e.target.result;
+            };
+            reader.readAsText(file);
+        }
+
+        // Відправка форми на сервер
+        async function handleSubmit(event) {
+            event.preventDefault();
+            
+            let dataToSend = {};
+
+            if (currentMode === 'manual') {
+                const token = document.getElementById('bot_token').value.trim();
+                const cobalt = document.getElementById('cobalt_url').value.trim();
+
+                if (!token) {
+                    alert('Будь ласка, введіть Telegram Bot Token!');
+                    return;
+                }
+
+                dataToSend = {
+                    bot_token: token,
+                    cobalt_url: cobalt || 'http://localhost:7100'
+                };
+            } else {
+                const jsonText = document.getElementById('import_json').value.trim();
+                if (!jsonText) {
+                    alert('Вставте текст JSON або завантажте файл конфігурації!');
+                    return;
+                }
+                try {
+                    // Парсимо JSON, щоб перевірити правильність і витягти дані
+                    const parsed = JSON.parse(jsonText);
+                    // Тут підлаштуй під структуру свого файлу імпорту:
+                    dataToSend = {
+                        bot_token: parsed.bot_token || parsed.settings?.bot_token,
+                        cobalt_url: parsed.cobalt_url || parsed.settings?.cobalt_url || 'http://localhost:7100',
+                        // Якщо треба імпортувати інші параметри, додавай сюди:
+                        message_text: parsed.message_text,
+                        message_photo: parsed.message_photo,
+                        message_video: parsed.message_video,
+                        message_gif: parsed.message_gif,
+                        message_video_note: parsed.message_video_note,
+                        tiktok: parsed.tiktok
+                    };
+
+                    if (!dataToSend.bot_token) {
+                        alert('У імпортованому файлі не знайдено "bot_token"!');
+                        return;
+                    }
+                } catch (e) {
+                    alert('Помилка валідації JSON. Перевірте синтаксис.');
+                    return;
+                }
+            }
+
+            // Відправка запиту на ваш API (PUT /api/settings)
+            try {
+                const response = await fetch('/api/settings', {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(dataToSend)
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    alert('Налаштування успішно збережено! Зараз сервер буде перезапущено.');
+                    // Перенаправляємо на головну сторінку панелі
+                    window.location.reload(); 
+                } else {
+                    alert('Помилка сервера: ' + result.error);
+                }
+            } catch (err) {
+                alert('Не вдалося з\'єднатися з сервером: ' + err.message);
+            }
+        }
+    </script>
+</body>

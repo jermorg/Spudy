@@ -1,0 +1,6 @@
+.active_menu_item {
+    background-color: rgb(19, 27, 44);
+    color: #ffffff;
+    /* border-left: 3px; */
+    padding-left: 9px;
+}

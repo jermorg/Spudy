@@ -2,17 +2,30 @@ require('dotenv').config();
 const express = require('express');
 const Database = require('better-sqlite3');
 const crypto = require('crypto');
+const path = require('path');
 
 const app = express();
-const PORT = process.env.WEB_PORT || 3000;
+const PORT = process.env.WEB_PORT || 4000;
 
 app.use(express.json());
 
 const db = new Database('data.db');
 db.pragma('foreign_keys = ON');
 
-// Створюємо таблиці
+// Create Tables
 db.exec(`
+  CREATE TABLE IF NOT EXISTS dashboard_logs (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    telegram_id TEXT NOT NULL,
+    username TEXT,
+    msg_type TEXT NOT NULL,
+    payload_preview TEXT,
+    webhook_name TEXT NOT NULL,
+    status INTEGER NOT NULL, -- 1 = true, 0 = false
+    error_message TEXT DEFAULT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  );
+
   CREATE TABLE IF NOT EXISTS webhooks (
     key TEXT PRIMARY KEY,
     url TEXT NOT NULL,
@@ -27,7 +40,9 @@ db.exec(`
   );
 
   CREATE TABLE IF NOT EXISTS global_settings (
-    id INTEGER PRIMARY KEY CHECK (id = 1), -- Гарантує, що рядок буде завжди ОДИН
+    id INTEGER PRIMARY KEY CHECK (id = 1),
+    bot_token TEXT DEFAULT NULL,
+    cobalt_url TEXT DEFAULT NULL,
     message_text INTEGER DEFAULT 1,
     message_photo INTEGER DEFAULT 1,
     message_video INTEGER DEFAULT 1,
@@ -37,23 +52,50 @@ db.exec(`
   );
 `);
 
-// Ініціалізуємо дефолтні глобальні налаштування, якщо таблиця порожня
+// Initialize global settings if not exists
 const initSettings = db.prepare('SELECT 1 FROM global_settings WHERE id = 1').get();
 if (!initSettings) {
-    db.prepare('INSERT INTO global_settings (id, message_text, message_photo, message_video, message_gif, message_video_note, tiktok) VALUES (1, 1, 1, 1, 1, 1, 0)').run();
+    db.prepare(`
+        INSERT INTO global_settings (id, bot_token, cobalt_url, message_text, message_photo, message_video, message_gif, message_video_note, tiktok) 
+        VALUES (1, NULL, NULL, 1, 1, 1, 1, 1, 0)
+    `).run();
     console.log('[DB] Global settings initialized with default values.');
+} else {
+    try {
+        db.exec("ALTER TABLE global_settings ADD COLUMN cobalt_url TEXT DEFAULT NULL");
+        console.log('[DB] Migrated: added cobalt_url column.');
+    } catch (e) {
+    }
 }
 
-// 1. Get Config (для бота)
+app.use(express.static(path.join(__dirname, 'web')));
+
+app.get('/api/dashboard/logs', (req, res) => {
+    try {
+        const logs = db.prepare('SELECT * FROM dashboard_logs ORDER BY created_at DESC LIMIT 50').all();
+        res.json(logs);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.get('/settings', (req, res) => {
+    res.sendFile(__dirname + '/web/settings.html');
+});
+
+// 1. Get Config
 app.get('/api/config', (req, res) => {
     try {
-        const webhooksRows = db.prepare('SELECT key, url FROM webhooks').all();
+        const webhooksRows = db.prepare('SELECT key, url, name FROM webhooks').all();
         const usersRows = db.prepare('SELECT user_id, webhook_key FROM user_webhooks').all();
         const globalSettings = db.prepare('SELECT * FROM global_settings WHERE id = 1').get();
 
         const webhooks = {};
+        const webhookNames = {};
+        
         webhooksRows.forEach(row => {
             webhooks[row.key] = row.url;
+            webhookNames[row.key] = row.name || row.key;
         });
 
         const users = {};
@@ -68,10 +110,11 @@ app.get('/api/config', (req, res) => {
             MESSAGE_VIDEO: Boolean(globalSettings.message_video),
             MESSAGE_GIF: Boolean(globalSettings.message_gif),
             MESSAGE_VIDEO_NOTE: Boolean(globalSettings.message_video_note),
-            TIKTOK: Boolean(globalSettings.tiktok)
+            TIKTOK: Boolean(globalSettings.tiktok),
+            COBALT_URL: globalSettings.cobalt_url || '',
         };
 
-        res.json({ webhooks, users, settings });
+        res.json({ webhooks, webhookNames, users, settings });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
@@ -113,6 +156,7 @@ app.delete('/api/webhooks/:key', (req, res) => {
     }
 });
 
+// 3. Settings Management
 app.get('/api/settings', (req, res) => {
     try {
         const row = db.prepare('SELECT * FROM global_settings WHERE id = 1').get();
@@ -166,6 +210,40 @@ app.put('/api/settings', (req, res) => {
     }
 });
 
+app.put('/api/settings/token', (req, res) => {
+    const { bot_token } = req.body;
+    if (bot_token === undefined || bot_token.trim() === '') {
+        return res.status(400).json({ error: 'bot_token is required and cannot be empty' });
+    }
+    try {
+        const stmt = db.prepare('UPDATE global_settings SET bot_token = ? WHERE id = 1');
+        const result = stmt.run(bot_token.trim());
+        if (result.changes === 0) {
+            return res.status(404).json({ error: 'Settings row not found' });
+        }
+        res.json({ success: true, message: 'Telegram bot token updated successfully.' });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.put('/api/settings/cobalt', (req, res) => {
+    const { cobalt_url } = req.body;
+    if (cobalt_url === undefined || cobalt_url.trim() === '') {
+        return res.status(400).json({ error: 'cobalt_url is required and cannot be empty' });
+    }
+    try {
+        const stmt = db.prepare('UPDATE global_settings SET cobalt_url = ? WHERE id = 1');
+        const result = stmt.run(cobalt_url.trim());
+        if (result.changes === 0) {
+            return res.status(404).json({ error: 'Settings row not found' });
+        }
+        res.json({ success: true, message: 'Cobalt API URL updated successfully.' });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
 // 4. User Management 
 app.post('/api/users', (req, res) => {
     const { user_id, webhook_key } = req.body;
@@ -186,6 +264,19 @@ app.delete('/api/users/:userId/:webhookKey', (req, res) => {
         const stmt = db.prepare('DELETE FROM user_webhooks WHERE user_id = ? AND webhook_key = ?');
         stmt.run(userId, webhookKey);
         res.json({ success: true, message: `Access removed.` });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.delete('/api/users/:userId', (req, res) => {
+    const { userId } = req.params;
+    if (userId.toLowerCase() === 'all' || userId === '0') {
+        return res.status(400).json({ error: 'Cannot delete global rule' });
+    }
+    try {
+        db.prepare('DELETE FROM user_webhooks WHERE user_id = ?').run(userId);
+        res.json({ success: true });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }

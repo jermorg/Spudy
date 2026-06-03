@@ -1,6 +1,6 @@
 {
   "name": "spudy",
-  "version": "3.1.0",
+  "version": "3.2.0",
   "description": "A simple bridge between a Telegram bot and Discord using webhooks for media and message forwarding. ",
   "keywords": [
     "spudy",
@@ -23,7 +23,9 @@
   "type": "commonjs",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "web": "node web.js",
+    "bot": "node index.js",
+    "start": "concurrently \"npm run web\" \"npm run bot\""
   },
   "dependencies": {
     "axios": "^1.13.5",

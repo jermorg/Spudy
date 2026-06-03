@@ -2,9 +2,32 @@ require('dotenv').config();
 const TelegramBot = require('node-telegram-bot-api');
 const { WebhookClient } = require('discord.js');
 const axios = require('axios');
+const Database = require('better-sqlite3');
 
-// Bot & webhook
-const telegramBot = new TelegramBot(process.env.TELEGRAM_TOKEN, { polling: true });
+//connect to DB
+const db = new Database('data.db');
+let TELEGRAM_TOKEN = null;
+
+try {
+    const tableCheck = db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='global_settings'").get();    
+    if (tableCheck) {
+        const globalSettings = db.prepare('SELECT bot_token FROM global_settings WHERE id = 1').get();
+        TELEGRAM_TOKEN = globalSettings?.bot_token;
+    }
+} catch (err) {
+    console.error(`[BOT][❌] Error reading database: ${err.message}`);
+}
+
+if (!TELEGRAM_TOKEN) {
+    console.log('\n======================================================');
+    console.log('[BOT][⚠️] BOT TOKEN NOT FOUND!');
+    console.log('[BOT][ℹ️] PLEASE SET YOUR TELEGRAM BOT TOKEN IN THE WEB INTERFACE TO START THE BOT');
+    console.log('======================================================\n');
+    return; 
+}
+
+console.log('[BOT][✅] BOT TOKEN FOUND');
+const telegramBot = new TelegramBot(TELEGRAM_TOKEN, { polling: true });
 
 // Consts
 const API_BASE = `http://localhost:${process.env.WEB_PORT || 3000}/api`;
@@ -21,6 +44,36 @@ let WEBHOOKS;
     isReady = true;
 })();
 
+// Add logging function
+function logToDashboard({ msg, msgType, payload, webhookName, status, errorMsg = null }) {
+    try {
+        let preview = "";
+        if (msgType === 'MESSAGE_TEXT') {
+            preview = payload?.content || msg.text || "";
+        } else if (msgType === 'TIKTOK') {
+            preview = msg.text || "TikTok Link";
+        } else {
+            preview = `[${msgType.replace('MESSAGE_', '')} File]`;
+        }
+
+        const stmt = db.prepare(`
+            INSERT INTO dashboard_logs (telegram_id, username, msg_type, payload_preview, webhook_name, status, error_message)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+        `);
+        stmt.run(
+            msg.from.id.toString(),
+            msg.from.username ? `@${msg.from.username}` : msg.from.first_name,
+            msgType,
+            preview,
+            webhookName,
+            status ? 1 : 0,
+            errorMsg
+        );
+    } catch (e) {
+        console.error("[LOG][❌] error add log to DB:", e.message);
+    }
+}
+
 // Events
 telegramBot.on('message', async (msg) => {
     if (!msg.from) return;
@@ -28,19 +81,21 @@ telegramBot.on('message', async (msg) => {
 
     try {
         const configResponse = await axios.get(`${API_BASE}/config`);
-        const { webhooks, users, settings } = configResponse.data;
+        const { webhooks, webhookNames, users, settings } = configResponse.data;
 
-        const available = [...new Set([
-            ...(users.all?.length ? users.all : Object.keys(webhooks)),
-            ...(users[userId] || [])
-        ])];
+        let available = users[userId] || [];
 
-        if (!available.length) return console.info("[BOT][ℹ️] No available webhooks");
+        if (!available.length) {
+            available = users['0'] || [];
+        }
+
+        available = [...new Set(available)];
+
+        if (!available.length) return;
 
         let payload = null;
         let detectedType = null;
 
-        // Пряма перевірка за глобальними налаштуваннями settings
         if (msg.photo && settings.MESSAGE_PHOTO) {
             const media = await getTelegramMediaUrl(msg);
             if (media.ok) { payload = { files: [{ attachment: media.url }] }; detectedType = 'MESSAGE_PHOTO'; }
@@ -56,7 +111,12 @@ telegramBot.on('message', async (msg) => {
         } else if (msg.text) {
             if (msg.text.includes('tiktok.com') && settings.TIKTOK) {
                 const files = await downloadTikTokVideo(msg.text);
-                if (files) { payload = { files }; detectedType = 'TIKTOK'; }
+                if (files) {
+                    payload = { files };
+                    detectedType = 'TIKTOK';
+                } else {
+                    return telegramBot.sendMessage(msg.chat.id, '❌');
+                }
             } else if (settings.MESSAGE_TEXT) {
                 payload = { content: msg.text };
                 detectedType = 'MESSAGE_TEXT';
@@ -70,23 +130,34 @@ telegramBot.on('message', async (msg) => {
         if (available.length === 1) {
             const targetKey = available[0];
             const webhookUrl = webhooks[targetKey];
+            const currentWebhookName = webhookNames?.[targetKey] || targetKey;
 
-            if (!webhookUrl) return telegramBot.sendMessage(msg.chat.id, '[BOT][❌] Webhook URL not found');
+            if (!webhookUrl) {
+                logToDashboard({ msg, msgType: detectedType, payload, webhookName: currentWebhookName, status: false, errorMsg: 'Webhook URL not found' });
+                return telegramBot.sendMessage(msg.chat.id, '[BOT][❌] Webhook URL not found');
+            }
             
-            await sendToDiscord(webhookUrl, payload, options);
-            return telegramBot.sendMessage(msg.chat.id, '✅');
+            try {
+                await sendToDiscord(webhookUrl, payload, options);
+                logToDashboard({ msg, msgType: detectedType, payload, webhookName: currentWebhookName, status: true });
+                return telegramBot.sendMessage(msg.chat.id, '✅');
+            } catch (err) {
+                logToDashboard({ msg, msgType: detectedType, payload, webhookName: currentWebhookName, status: false, errorMsg: err.message });
+                return telegramBot.sendMessage(msg.chat.id, '❌');
+            }
         }
 
-        const webhooksDataResponse = await axios.get(`${API_BASE}/webhooks`);
-        const webhooksDetails = webhooksDataResponse.data;
-
         const buttons = available.map(k => {
-            const found = webhooksDetails.find(w => w.key === k);
-            return [{ text: found?.name || k, callback_data: `send:${k}` }];
+            const name = webhookNames?.[k] || k;
+            return [{ text: name, callback_data: `send:${k}` }];
         });
 
-        pendingMessages.set(msg.chat.id, { payload, options, detectedType });
-        telegramBot.sendMessage(msg.chat.id, TEXT_FOR_WHERE_SEND, { reply_markup: { inline_keyboard: buttons } });
+        const sentMessage = await telegramBot.sendMessage(msg.chat.id, TEXT_FOR_WHERE_SEND, { 
+            reply_markup: { inline_keyboard: buttons },
+            reply_to_message_id: msg.message_id
+        });
+
+        pendingMessages.set(`${msg.chat.id}:${sentMessage.message_id}`, { payload, options, detectedType, originalMsg: msg });
 
     } catch (err) {
         console.error("[BOT][❌] error while processing message:", err.message);
@@ -95,28 +166,45 @@ telegramBot.on('message', async (msg) => {
 
 telegramBot.on('callback_query', async (query) => {
     const chatId = query.message.chat.id;
+    const messageId = query.message.message_id;
     const [action, key] = query.data.split(':');
-    const pending = pendingMessages.get(chatId);
+    
+    const pendingKey = `${chatId}:${messageId}`;
+    const pending = pendingMessages.get(pendingKey);
 
-    if (action === 'send' && pending) {
+    if (action === 'send') {
+        if (!pending) {
+            console.log(`[BOT][❌] No pending message found for callback query with key ${pendingKey}`);
+            await telegramBot.editMessageText(`❌`, { chat_id: chatId, message_id: messageId });
+            return telegramBot.answerCallbackQuery(query.id);
+        }
+
+        let configResponse, webhookUrl, currentWebhookName;
         try {
-            const configResponse = await axios.get(`${API_BASE}/config`);
-            const webhookUrl = configResponse.data.webhooks[key];
+            configResponse = await axios.get(`${API_BASE}/config`);
+            webhookUrl = configResponse.data.webhooks[key];
+            currentWebhookName = configResponse.data.webhookNames?.[key] || key;
+        } catch (cfgErr) {
+            console.error(cfgErr);
+        }
 
-            if (!webhookUrl) {
-                await telegramBot.sendMessage(chatId, "❌");
-                console.error(`[BOT][❌] Webhook ${key} not found`);
-                return telegramBot.answerCallbackQuery(query.id);
-            }
+        if (!webhookUrl) {
+            await telegramBot.sendMessage(chatId, "❌");
+            logToDashboard({ msg: pending.originalMsg, msgType: pending.detectedType, payload: pending.payload, webhookName: key, status: false, errorMsg: 'Webhook not found during callback' });
+            return telegramBot.answerCallbackQuery(query.id);
+        }
 
-            // Ініціалізація WebhookClient та відправка відбувається прямо всередині функції
+        try {
             await sendToDiscord(webhookUrl, pending.payload, pending.options);
+            await telegramBot.editMessageText(`✅`, { chat_id: chatId, message_id: messageId });
             
-            await telegramBot.editMessageText(`✅`, { chat_id: chatId, message_id: query.message.message_id });
-            pendingMessages.delete(chatId);
+            logToDashboard({ msg: pending.originalMsg, msgType: pending.detectedType, payload: pending.payload, webhookName: currentWebhookName, status: true });
+            pendingMessages.delete(pendingKey);
         } catch (e) {
             console.error("[BOT][❌] error while sending via button:", e.message);
             await telegramBot.sendMessage(chatId, "❌");
+            
+            logToDashboard({ msg: pending.originalMsg, msgType: pending.detectedType, payload: pending.payload, webhookName: currentWebhookName, status: false, errorMsg: e.message });
         }
     }
     telegramBot.answerCallbackQuery(query.id);
@@ -124,7 +212,18 @@ telegramBot.on('callback_query', async (query) => {
 
 // TikTok download function
 async function downloadTikTokVideo(url) {
-    const response = await axios.post(process.env.COBALT_LOCAL_URL, { localProcessing: "preferred", url: url }, {headers: { "Accept": "application/json", "Content-Type": "application/json" }});
+    let cobaltUrl = process.env.COBALT_LOCAL_URL;
+    
+    try {
+        const row = db.prepare('SELECT cobalt_url FROM global_settings WHERE id = 1').get();
+        if (row?.cobalt_url) cobaltUrl = row.cobalt_url.trim();
+    } catch (e) {
+        console.error(e);
+    }
+
+    if (!cobaltUrl) return null;
+
+    const response = await axios.post(cobaltUrl, { localProcessing: "preferred", url: url }, {headers: { "Accept": "application/json", "Content-Type": "application/json" }});
     const data = response.data;
     if (!["redirect", "tunnel", "picker"].includes(data.status)) return null;
     if (data.status === "redirect" || data.status === "tunnel") {
@@ -136,8 +235,8 @@ async function downloadTikTokVideo(url) {
         const files = [];
         if (data.audio) {
             files.push({ 
-                attachment: data.audio, 
-                name: 'music_from_video.mp3' 
+                attachment: data.audio,
+                name: 'music_from_video.mp3'
             });
         }
         if (Array.isArray(data.picker)) {
@@ -175,7 +274,7 @@ async function getUserPhotoUrl(userId) {
 
 async function getTelegramFileUrl(fileId) {
     const file = await telegramBot.getFile(fileId);
-    const fileUrl = `https://api.telegram.org/file/bot${process.env.TELEGRAM_TOKEN}/${file.file_path}`;
+    const fileUrl = `https://api.telegram.org/file/bot${TELEGRAM_TOKEN}/${file.file_path}`;
     const fileSize = file.file_size;
     return { fileUrl, fileSize };
 }
