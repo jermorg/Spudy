@@ -74,6 +74,8 @@
 
                 const result = await response.json();
 
+                console.log(result);
+
                 if (result.success || response.ok) {
                     $('#restart-dialog')[0].showModal();
                 } else {

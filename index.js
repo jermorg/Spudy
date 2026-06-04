@@ -3,9 +3,10 @@ const TelegramBot = require('node-telegram-bot-api');
 const { WebhookClient } = require('discord.js');
 const axios = require('axios');
 const Database = require('better-sqlite3');
+const path = require('path');
 
 //connect to DB
-const db = new Database('data.db');
+const db = new Database(path.join('/app/data', 'data.db'));
 let TELEGRAM_TOKEN = null;
 
 try {

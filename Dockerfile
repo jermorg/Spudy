@@ -1,20 +1,16 @@
-FROM node:20-slim AS builder
+FROM node:20-slim
+
+RUN apt-get update && \
+    apt-get install -y python3 make g++ && \
+    rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
-
-RUN apt-get update && apt-get install -y python3 make g++ && rm -rf /var/lib/apt/lists/*
+RUN mkdir -p /app/data && chown -R node:node /app/data
 
 COPY package*.json ./
 
-RUN npm install --omit=dev
+RUN npm install
 
 COPY . .
-
-
-FROM node:20-slim
-
-WORKDIR /app
-
-COPY --from=builder /app ./
 
 CMD ["npm", "start"]

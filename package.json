@@ -1,6 +1,6 @@
 {
   "name": "spudy",
-  "version": "3.3.0",
+  "version": "3.4.0",
   "description": "A simple bridge between a Telegram bot and Discord using webhooks for media and message forwarding. ",
   "keywords": [
     "spudy",
@@ -31,6 +31,7 @@
     "axios": "^1.13.5",
     "better-sqlite3": "^12.10.0",
     "discord.js": "^14.25.1",
+    "concurrently": "^9.0.0",
     "dotenv": "^17.3.1",
     "express": "^5.2.1",
     "node-telegram-bot-api": "^0.67.0"
