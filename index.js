@@ -301,6 +301,20 @@ function getBestMedia(Array) {
 }
 
 async function downloadAsBuffer(url) {
-    const response = await axios.get(url, { responseType: 'arraybuffer' });
+    let cobaltUrl = process.env.COBALT_LOCAL_URL;
+    
+    try {
+        const row = db.prepare('SELECT cobalt_url FROM global_settings WHERE id = 1').get();
+        if (row?.cobalt_url) cobaltUrl = row.cobalt_url.trim();
+    } catch (e) {}
+
+    const targetUrl = new URL(url);
+    const cobaltBase = new URL(cobaltUrl);
+
+    const response = await axios.get(`${cobaltBase.origin}${targetUrl.pathname}${targetUrl.search}`, {
+        responseType: 'arraybuffer',
+        headers: { 'Host': cobaltBase.hostname }
+    });
+
     return Buffer.from(response.data);
 }
