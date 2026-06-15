@@ -1,15 +1,14 @@
-
 const ROUTING_OPTIONS = {
     "MESSAGE_TEXT": "MESSAGE_TEXT",
     "MESSAGE_PHOTO": "MESSAGE_PHOTO",
     "MESSAGE_VIDEO": "MESSAGE_VIDEO",
     "MESSAGE_GIF": "MESSAGE_GIF",
     "MESSAGE_VIDEO_NOTE": "MESSAGE_VIDEO_NOTE",
-    "TIKTOK": "TIKTOK"
+    "TIKTOK": "TIKTOK",
+    "INSTAGRAM": "INSTAGRAM"
 };
 
 let GLOBAL_CONFIG = {};
-
 
 function loadConfig() {
     fetch('/api/config')

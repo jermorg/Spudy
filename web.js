@@ -48,7 +48,8 @@ db.exec(`
     message_video INTEGER DEFAULT 1,
     message_gif INTEGER DEFAULT 1,
     message_video_note INTEGER DEFAULT 1,
-    tiktok INTEGER DEFAULT 0
+    tiktok INTEGER DEFAULT 0,
+    instagram INTEGER DEFAULT 0
   );
 `);
 
@@ -60,12 +61,16 @@ if (!initSettings) {
         VALUES (1, NULL, NULL, 1, 1, 1, 1, 1, 0)
     `).run();
     console.log('[DB] Global settings initialized with default values.');
-} else {
-    try {
-        db.exec("ALTER TABLE global_settings ADD COLUMN cobalt_url TEXT DEFAULT NULL");
-        console.log('[DB] Migrated: added cobalt_url column.');
-    } catch (e) {
-    }
+}
+try {
+    db.exec("ALTER TABLE global_settings ADD COLUMN cobalt_url TEXT DEFAULT NULL");
+} catch (e) {
+    if (!e.message.includes("duplicate column name")) { console.error("erorr migration:", e); }
+}
+try {
+    db.exec("ALTER TABLE global_settings ADD COLUMN instagram INTEGER DEFAULT 0;");
+} catch (e) { 
+    if (!e.message.includes("duplicate column name")) { console.error("erorr migration:", e); }
 }
 
 app.use(express.static(path.join(__dirname, 'web')));
@@ -135,6 +140,7 @@ app.get('/api/config', (req, res) => {
             MESSAGE_GIF: Boolean(globalSettings.message_gif),
             MESSAGE_VIDEO_NOTE: Boolean(globalSettings.message_video_note),
             TIKTOK: Boolean(globalSettings.tiktok),
+            INSTAGRAM: Boolean(globalSettings.instagram),
             COBALT_URL: globalSettings.cobalt_url || '',
         };
 
@@ -200,7 +206,8 @@ app.get('/api/settings', (req, res) => {
             message_video: Boolean(row.message_video),
             message_gif: Boolean(row.message_gif),
             message_video_note: Boolean(row.message_video_note),
-            tiktok: Boolean(row.tiktok)
+            tiktok: Boolean(row.tiktok),
+            instagram: Boolean(row.instagram)
         });
     } catch (err) {
         res.status(500).json({ error: err.message });
@@ -208,7 +215,7 @@ app.get('/api/settings', (req, res) => {
 });
 
 app.put('/api/settings', (req, res) => {
-    const { message_text, message_photo, message_video, message_gif, message_video_note, tiktok } = req.body;
+    const { message_text, message_photo, message_video, message_gif, message_video_note, tiktok, instagram } = req.body;
 
     try {
         const current = db.prepare('SELECT * FROM global_settings WHERE id = 1').get();
@@ -225,7 +232,8 @@ app.put('/api/settings', (req, res) => {
                 message_video = ?, 
                 message_gif = ?, 
                 message_video_note = ?, 
-                tiktok = ?
+                tiktok = ?,
+                instagram = ?
             WHERE id = 1
         `);
 
@@ -235,7 +243,8 @@ app.put('/api/settings', (req, res) => {
             toInt(message_video, 'message_video'),
             toInt(message_gif, 'message_gif'),
             toInt(message_video_note, 'message_video_note'),
-            toInt(tiktok, 'tiktok')
+            toInt(tiktok, 'tiktok'),
+            toInt(instagram, 'instagram')
         );
 
         res.json({ success: true, message: 'Global settings updated.' });

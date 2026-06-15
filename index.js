@@ -10,7 +10,7 @@ const db = new Database(path.join('/app/data', 'data.db'));
 let TELEGRAM_TOKEN = null;
 
 try {
-    const tableCheck = db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='global_settings'").get();    
+    const tableCheck = db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='global_settings'").get();
     if (tableCheck) {
         const globalSettings = db.prepare('SELECT bot_token FROM global_settings WHERE id = 1').get();
         TELEGRAM_TOKEN = globalSettings?.bot_token;
@@ -112,7 +112,15 @@ telegramBot.on('message', async (msg) => {
         } else if (msg.text) {
             if (msg.text.includes('tiktok.com') && settings.TIKTOK) {
                 detectedType = 'TIKTOK';
-                const files = await downloadTikTokVideo(msg.text);
+                const files = await downloadVideoviaCobalt(msg.text);
+                if (files) {
+                    payload = { files };
+                } else {
+                    return telegramBot.sendMessage(msg.chat.id, '❌');
+                }
+            } else if (msg.text.includes('instagram.com') && settings.INSTAGRAM) {
+                detectedType = 'INSTAGRAM';
+                const files = await downloadVideoviaCobalt(msg.text);
                 if (files) {
                     payload = { files };
                 } else {
@@ -213,8 +221,8 @@ telegramBot.on('callback_query', async (query) => {
     telegramBot.answerCallbackQuery(query.id);
 });
 
-// TikTok download function
-async function downloadTikTokVideo(url) {
+// Cobalt function
+async function downloadVideoviaCobalt(url) {
     let cobaltUrl = process.env.COBALT_LOCAL_URL;
     
     try {
@@ -301,6 +309,13 @@ function getBestMedia(Array) {
 }
 
 async function downloadAsBuffer(url) {
+    if (!url.includes('umbrel.local')) {
+        const response = await axios.get(url, {
+            responseType: 'arraybuffer'
+        });
+        return Buffer.from(response.data);
+    }
+
     let cobaltUrl = process.env.COBALT_LOCAL_URL;
     
     try {
