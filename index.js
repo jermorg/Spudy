@@ -245,10 +245,15 @@ async function downloadVideoviaCobalt(url) {
     } else if (data.status === "picker") {
         const files = [];
         if (data.audio) {
-            files.push({ 
-                attachment: data.audio,
-                name: 'music_from_video.mp3'
-            });
+            try {
+                const audioBuffer = await downloadAsBuffer(data.audio);
+                files.push({
+                    attachment: audioBuffer,
+                    name: 'music_from_video.mp3'
+                });
+            } catch (e) {
+                console.error("[COBALT][❌] error download audio to buffer:", e.message);
+            }
         }
         if (Array.isArray(data.picker)) {
             data.picker.filter(item => item.type === 'photo').forEach((item, index) => {
