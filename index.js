@@ -266,7 +266,24 @@ async function downloadVideoviaCobalt(url) {
 async function sendToDiscord(webhookUrl, payload, options) {
     try {
         const client = new WebhookClient({ url: webhookUrl });
-        await client.send({ ...payload, ...options });
+        const files = payload.files || [];
+
+        if (files.length <= 10) {
+            await client.send({ ...payload, ...options });
+            return;
+        }
+
+        const chunkSize = 10;
+        for (let i = 0; i < files.length; i += chunkSize) {
+            const chunk = files.slice(i, i + chunkSize);
+            await client.send({
+                ...payload,
+                files: chunk,
+                content: i === 0 ? payload.content : undefined,
+                embeds: i === 0 ? payload.embeds : undefined,
+                ...options,
+            });
+        }
     } catch (err) {
         console.error(`❌ error discord SDK:`, err.message);
         throw err;
