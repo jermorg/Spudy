@@ -6,7 +6,7 @@ const Database = require('better-sqlite3');
 const path = require('path');
 
 //connect to DB
-const db = new Database(path.join('/app/data', 'data.db'));
+const db = new Database(path.join(__dirname, 'data', 'data.db'));
 let TELEGRAM_TOKEN = null;
 
 try {
@@ -234,37 +234,118 @@ async function downloadVideoviaCobalt(url) {
 
     if (!cobaltUrl) return null;
 
-    const response = await axios.post(cobaltUrl, { localProcessing: "preferred", url: url }, {headers: { "Accept": "application/json", "Content-Type": "application/json" }});
-    const data = response.data;
-    if (!["redirect", "tunnel", "picker"].includes(data.status)) return null;
-    if (data.status === "redirect" || data.status === "tunnel") {
-        try {
-            const videoBuffer = await downloadAsBuffer(data.url);
-            return [{ attachment: videoBuffer, name: data.filename || 'video.mp4' }];
-        } catch (e) { console.error("[COBALT][❌] error download video to buffer:", e.message); return null; }
-    } else if (data.status === "picker") {
-        const files = [];
-        if (data.audio) {
-            try {
-                const audioBuffer = await downloadAsBuffer(data.audio);
-                files.push({
-                    attachment: audioBuffer,
-                    name: 'music_from_video.mp3'
-                });
-            } catch (e) {
-                console.error("[COBALT][❌] error download audio to buffer:", e.message);
-            }
+    const retryDelays = [0, 0, 3000, 5000];
+
+    // const response = await axios.post(cobaltUrl, { localProcessing: "preferred", url: url }, {headers: { "Accept": "application/json", "Content-Type": "application/json" }, validateStatus: (status) => status < 600});
+    // const data = response.data;
+    // console.log(data)
+
+    for (let attempt = 0; attempt < retryDelays.length; attempt++) {
+        const delay = retryDelays[attempt];
+
+        if (delay > 0) {
+            console.log(`[COBALT][⏳] TikTok fetch failed. Retrying attempt ${attempt + 1}/${retryDelays.length} after ${delay / 1000}s...`);
+            await sleep(delay);
         }
-        if (Array.isArray(data.picker)) {
-            data.picker.filter(item => item.type === 'photo').forEach((item, index) => {
-                files.push({
-                    attachment: item.url,
-                    name: `photo_${Date.now()}_${index}.jpeg`
-                });
-            });
-        }   
-        return files.length > 0 ? files : null;
+
+        try {
+            const response = await axios.post(
+                cobaltUrl, 
+                { localProcessing: "preferred", url: url }, 
+                {
+                    headers: { "Accept": "application/json", "Content-Type": "application/json" },
+                    validateStatus: (status) => status < 600
+                }
+            );
+
+            const data = response.data;
+
+            const isTikTokFetchFail = data?.status === 'error' && data?.error?.code === 'error.api.fetch.fail';
+
+            if (isTikTokFetchFail) {
+                console.warn(`[COBALT][⚠️] Attempt ${attempt + 1} failed: error.api.fetch.fail (tiktok)`);
+                
+                if (attempt === retryDelays.length - 1) {
+                    console.error("[COBALT][❌] All retry attempts exhausted for TikTok.");
+                    return null;
+                }
+                
+                continue;
+            }
+
+            if (!["redirect", "tunnel", "picker"].includes(data.status)) {
+                console.error("[COBALT][❌] Unexpected status:", data);
+                return null;
+            }
+
+            if (data.status === "redirect" || data.status === "tunnel") {
+                try {
+                    const videoBuffer = await downloadAsBuffer(data.url);
+                    return [{ attachment: videoBuffer, name: data.filename || 'video.mp4' }];
+                } catch (e) { 
+                    console.error("[COBALT][❌] error download video to buffer:", e.message); 
+                    return null; 
+                }
+            } else if (data.status === "picker") {
+                const files = [];
+                if (data.audio) {
+                    try {
+                        const audioBuffer = await downloadAsBuffer(data.audio);
+                        files.push({
+                            attachment: audioBuffer,
+                            name: 'music_from_video.mp3'
+                        });
+                    } catch (e) {
+                        console.error("[COBALT][❌] error download audio to buffer:", e.message);
+                    }
+                }
+                if (Array.isArray(data.picker)) {
+                    data.picker.filter(item => item.type === 'photo').forEach((item, index) => {
+                        files.push({
+                            attachment: item.url,
+                            name: `photo_${Date.now()}_${index}.jpeg`
+                        });
+                    });
+                }   
+                return files.length > 0 ? files : null;
+            }
+
+        } catch (e) {
+            console.error(`[COBALT][❌] Network / Server error on attempt ${attempt + 1}:`, e.message);
+            if (attempt === retryDelays.length - 1) return null;
+        }
     }
+
+
+    // if (!["redirect", "tunnel", "picker"].includes(data.status)) return null;
+    // if (data.status === "redirect" || data.status === "tunnel") {
+    //     try {
+    //         const videoBuffer = await downloadAsBuffer(data.url);
+    //         return [{ attachment: videoBuffer, name: data.filename || 'video.mp4' }];
+    //     } catch (e) { console.error("[COBALT][❌] error download video to buffer:", e.message); return null; }
+    // } else if (data.status === "picker") {
+    //     const files = [];
+    //     if (data.audio) {
+    //         try {
+    //             const audioBuffer = await downloadAsBuffer(data.audio);
+    //             files.push({
+    //                 attachment: audioBuffer,
+    //                 name: 'music_from_video.mp3'
+    //             });
+    //         } catch (e) {
+    //             console.error("[COBALT][❌] error download audio to buffer:", e.message);
+    //         }
+    //     }
+    //     if (Array.isArray(data.picker)) {
+    //         data.picker.filter(item => item.type === 'photo').forEach((item, index) => {
+    //             files.push({
+    //                 attachment: item.url,
+    //                 name: `photo_${Date.now()}_${index}.jpeg`
+    //             });
+    //         });
+    //     }   
+    //     return files.length > 0 ? files : null;
+    // }
     return null;
 }
 
@@ -355,3 +436,6 @@ async function downloadAsBuffer(url) {
 
     return Buffer.from(response.data);
 }
+
+// sleep function
+const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));

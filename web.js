@@ -9,7 +9,7 @@ const PORT = process.env.WEB_PORT || 4000;
 
 app.use(express.json());
 
-const db = new Database(path.join('/app/data', 'data.db'));
+const db = new Database(path.join(__dirname, 'data', 'data.db'));
 db.pragma('foreign_keys = ON');
 
 // Create Tables
