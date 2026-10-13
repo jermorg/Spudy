@@ -61,41 +61,43 @@ function saveCobaltConfig() {
     
     $btn.prop('disabled', true).css('opacity', '0.5').text('Testing connection...');
 
-    $.ajax({
-        url: `${cobaltValue}/ping`,
-        method: 'GET',
-        timeout: 5000
-    })
-    .done(function() {
-        $btn.text('Saving...');
+    $btn.text('Saving...');
 
-        $.ajax({
-            url: '/api/settings/cobalt',
-            method: 'PUT',
-            contentType: 'application/json',
-            data: JSON.stringify({ cobalt_url: cobaltValue }),
-            success: function(response) {
-                if (response.success) {
-                    $btn.text('Success!').removeClass('bg-[#2563eb]').addClass('bg-green-600');
-                    alert('Cobalt URL successfully tested and saved!');
-                }
-            },
-            error: function(xhr) {
-                const errorMsg = xhr.responseJSON?.error || 'error saving Cobalt URL';
-                alert('❌ ' + errorMsg);
-                $btn.text('Failed').removeClass('bg-[#2563eb]').addClass('bg-rose-600');
-            },
-            complete: function() {
-                resetCobaltButton($btn);
+    $.ajax({
+        url: '/api/settings/cobalt',
+        method: 'PUT',
+        contentType: 'application/json',
+        data: JSON.stringify({ cobalt_url: cobaltValue }),
+        success: function(response) {
+            if (response.success) {
+                $btn.text('Success!').removeClass('bg-[#2563eb]').addClass('bg-green-600');
+                alert('Cobalt URL successfully tested and saved!');
             }
-        });
-    })
-    .fail(function(xhr, status, error) {
-        console.error('Cobalt ping error:', error);
-        alert('❌ Failed to connect to Cobalt API. Please check the URL or container status.');
-        $btn.text('Test Failed').removeClass('bg-[#2563eb]').addClass('bg-rose-600');        
-        resetCobaltButton($btn);
+        },
+        error: function(xhr) {
+            const errorMsg = xhr.responseJSON?.error || 'error saving Cobalt URL';
+            alert('❌ ' + errorMsg);
+            $btn.text('Failed').removeClass('bg-[#2563eb]').addClass('bg-rose-600');
+        },
+        complete: function() {
+            resetCobaltButton($btn);
+        }
     });
+
+    // $.ajax({
+    //     url: `${cobaltValue}/ping`,
+    //     method: 'GET',
+    //     timeout: 5000
+    // })
+    // .done(function() {
+        
+    // })
+    // .fail(function(xhr, status, error) {
+    //     console.error('Cobalt ping error:', error);
+    //     alert('❌ Failed to connect to Cobalt API. Please check the URL or container status.');
+    //     $btn.text('Test Failed').removeClass('bg-[#2563eb]').addClass('bg-rose-600');        
+    //     resetCobaltButton($btn);
+    // });
 }
 
 function resetCobaltButton($btn) {
