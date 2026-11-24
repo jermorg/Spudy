@@ -186,7 +186,11 @@ function removeUser(userId) {
 }
 
 function getLogs(limit = 50) {
-    return db.prepare('SELECT * FROM dashboard_logs ORDER BY created_at DESC LIMIT ?').all(limit);
+    return db.prepare('SELECT * FROM dashboard_logs ORDER BY id DESC LIMIT ?').all(limit);
+}
+
+function clearLogs() {
+    db.prepare('DELETE FROM dashboard_logs').run();
 }
 
 function addLog({ telegramId, username, msgType, payloadPreview, webhookName, status, errorMessage = null }) {
@@ -223,5 +227,6 @@ module.exports = {
     removeUserRule,
     removeUser,
     getLogs,
+    clearLogs,
     addLog
 };

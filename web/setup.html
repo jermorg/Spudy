@@ -1,93 +1,51 @@
-<head>
-    <title>Spudy - Setup</title>
-    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
-    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
-</head>
-<body class="bg-slate-900 text-slate-100 min-h-screen flex items-center justify-center p-4">
+<!DOCTYPE html>
+<html lang="uk">
 
-    <div class="max-w-xl w-full bg-slate-800 border border-slate-700 rounded-2xl shadow-2xl p-6 md:p-8">
-        
-        <div class="text-center mb-8">
-            <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-blue-500/10 text-blue-400 mb-4 animate-bounce">
-                ⚙️
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Spudy — Setup</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <link rel="stylesheet" href="/css/app.css">
+</head>
+
+<body class="bg-[#0d1117] text-gray-300 font-sans antialiased min-h-screen flex items-center justify-center p-4">
+
+    <div class="max-w-md w-full bg-[#161b22] border border-gray-800 rounded-xl shadow-2xl p-6 md:p-8">
+        <div class="text-center mb-6">
+            <div
+                class="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-400 mb-3">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round"
+                        d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5" />
+                </svg>
             </div>
-            <h1 class="text-3xl font-bold tracking-tight bg-gradient-to-r from-blue-400 to-indigo-400 bg-clip-text text-transparent">
-                Welcome to Spudy!
-            </h1>
-            <p class="text-slate-400 mt-2">
-                It looks like this is your first time running the control panel. Let's set up the bot so everything works.
+            <h1 class="text-xl font-bold text-white tracking-tight">Welcome to Spudy</h1>
+            <p class="text-xs text-gray-400 mt-1.5">Enter your Telegram Bot Token to initialize and launch the bridge.
             </p>
         </div>
 
-        <form id="setup-form" onsubmit="handleSubmit(event)">
-            <div class="space-y-5">
-                <div>
-                    <label class="block text-sm font-medium text-slate-300 mb-1.5">
-                        Telegram Bot Token <span class="text-rose-500">*</span>
-                    </label>
-                    <input type="text" id="bot_token" required placeholder="1234567890:ABCdefGhIJKlmNoPQRsTUVwxyZ" 
-                           class="w-full bg-slate-950 border border-slate-700 rounded-lg px-4 py-2.5 text-slate-100 placeholder-slate-600 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all">
-                    <p class="text-xs text-slate-500 mt-1">Get your token from <a href="https://t.me/BotFather" target="_blank" class="text-blue-400 hover:underline">@BotFather</a></p>
-                </div>
+        <form id="setup-form" class="space-y-4">
+            <div>
+                <label class="block text-[11px] font-semibold uppercase tracking-wider text-gray-400 mb-1.5">
+                    Telegram Bot Token <span class="text-rose-500">*</span>
+                </label>
+                <input type="text" id="bot-token" required placeholder="1234567890:ABCdefGhIJKlmNoPQRsTUVwxyZ"
+                    class="w-full bg-[#0d1117] border border-gray-800 rounded-lg px-3.5 py-2.5 text-xs font-mono text-gray-200 placeholder-gray-600 focus:outline-none focus:border-blue-500 transition-colors">
+                <p class="text-[11px] text-gray-500 mt-1.5">
+                    Create a bot via <a href="https://t.me/BotFather" target="_blank"
+                        class="text-blue-400 hover:underline">@BotFather</a> and paste the token here.
+                </p>
             </div>
 
-            <hr class="border-slate-700/50 my-6">
-
-            <button type="submit" class="w-full bg-blue-600 hover:bg-blue-500 active:bg-blue-700 text-white font-semibold py-3 px-4 rounded-xl shadow-lg shadow-blue-600/20 transition-all cursor-pointer flex items-center justify-center gap-2">
-                🚀 Save token
+            <button type="submit" id="setup-submit-btn"
+                class="w-full bg-blue-600 hover:bg-blue-500 text-white font-semibold text-xs py-2.5 px-4 rounded-lg transition-all active:scale-95 cursor-pointer">
+                Verify & Start Bot
             </button>
         </form>
     </div>
 
-<dialog id="restart-dialog" class="backdrop:bg-slate-950/80 backdrop:backdrop-blur-sm bg-slate-800 border border-slate-700 p-6 rounded-2xl max-w-sm w-full text-slate-100 shadow-2xl fixed inset-0 m-auto open:flex open:flex-col open:gap-4 outline-none">
-    <div class="text-center">
-        <span class="text-4xl inline-block mb-2 animate-pulse">🐳</span>
-        <h3 class="text-xl font-bold text-white">Token saved!</h3>
-        <p class="text-sm text-slate-400 mt-2">
-            For the changes to take effect and the bot to fully launch, you need to restart your <b>Docker container</b>.
-        </p>
-    </div>
-    <div class="mt-2">
-        <button onclick="handleDialogClose()" class="w-full bg-slate-700 hover:bg-slate-600 active:bg-slate-700 text-white font-medium py-2 px-4 rounded-xl transition-all cursor-pointer">
-            I will restart it, redirect me
-        </button>
-    </div>
-</dialog>
-
-    <script>
-        async function handleSubmit(event) {
-            event.preventDefault();
-            
-            const token = $('#bot_token').val().trim();
-
-            if (!token) {
-                alert('Please enter a Telegram Bot Token!');
-                return;
-            }
-
-            try {
-                const response = await fetch('/api/settings/token', {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ bot_token: token })
-                });
-
-                const result = await response.json();
-
-                console.log(result);
-
-                if (result.success || response.ok) {
-                    $('#restart-dialog')[0].showModal();
-                } else {
-                    alert('Server error: ' + (result.error || 'Unknown error'));
-                }
-            } catch (err) {
-                alert('Failed to connect to server: ' + err.message);
-            }
-        }
-
-        function handleDialogClose() {
-            window.location.href = '/';
-        }
-    </script>
+    <script type="module" src="/js/setup.js"></script>
 </body>
+
+</html>

@@ -8,6 +8,7 @@ const pendingMessages = new Map();
 
 let bot = null;
 let activeToken = null;
+let botInfo = null;
 
 function logMessage({ msg, msgType, payload, webhookName, status, errorMsg = null }) {
     let preview = '';
@@ -194,21 +195,38 @@ async function startBot() {
 
     if (!token) {
         console.log('[BOT][⚠️] BOT TOKEN NOT FOUND. Set it via Web UI to start the bot.');
-        return;
+        return null;
     }
 
     if (bot) {
         await bot.stopPolling();
         bot.removeAllListeners();
         bot = null;
+        botInfo = null;
     }
 
     activeToken = token;
-    bot = new TelegramBot(token, { polling: true });
-    bot.on('message', handleMessage);
-    bot.on('callback_query', handleCallbackQuery);
+    const instance = new TelegramBot(token, { polling: true });
+    instance.on('message', handleMessage);
+    instance.on('callback_query', handleCallbackQuery);
 
-    console.log('[BOT][✅] Telegram bot started');
+    try {
+        botInfo = await instance.getMe();
+    } catch (err) {
+        console.error('[BOT][❌] Failed to fetch bot info:', err.message);
+    }
+
+    bot = instance;
+    console.log(`[BOT][✅] Telegram bot started${botInfo?.username ? ` (@${botInfo.username})` : ''}`);
+    return getBotStatus();
 }
 
-module.exports = { startBot };
+function getBotStatus() {
+    return {
+        running: Boolean(bot),
+        username: botInfo?.username || null,
+        firstName: botInfo?.first_name || null
+    };
+}
+
+module.exports = { startBot, getBotStatus };
