@@ -1,16 +1,18 @@
-FROM node:20-slim
+FROM node:22-alpine
 
-RUN apt-get update && \
-    apt-get install -y python3 make g++ && \
-    rm -rf /var/lib/apt/lists/*
+ENV NODE_ENV=production
 
 WORKDIR /app
-RUN mkdir -p /app/data && chown -R node:node /app/data
 
 COPY package*.json ./
+RUN npm install --omit=dev && npm cache clean --force
 
-RUN npm install
+COPY --chown=node:node . .
 
-COPY . .
+RUN mkdir -p /app/data && chown -R node:node /app/data
 
-CMD ["npm", "start"]
+USER node
+
+EXPOSE 4000
+
+CMD ["node", "--no-warnings", "index.js"]
