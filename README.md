@@ -2,12 +2,14 @@
 
 Простий міст між **Telegram** та **Discord** для пересилки повідомлень, медіа та відео з TikTok / Instagram через Discord Webhooks із вебпанеллю керування.
 
-<p align="left">
-  <img src="https://img.shields.io/badge/Node.js-22%2B-339933?style=for-the-badge&logo=nodedotjs&logoColor=white" alt="Node.js 22+">
-  <img src="https://img.shields.io/badge/SQLite-node%3Asqlite-003B57?style=for-the-badge&logo=sqlite&logoColor=white" alt="SQLite">
-  <img src="https://img.shields.io/badge/Docker-amd64%20%7C%20arm64-2496ED?style=for-the-badge&logo=docker&logoColor=white" alt="Docker">
-  <img src="https://img.shields.io/badge/Umbrel_OS-Supported-5352ED?style=for-the-badge&logo=umbrel&logoColor=white" alt="Umbrel OS">
-</p>
+<a href="https://hub.docker.com/r/jermorg/spudy">
+  <p align="left">
+    <img src="https://img.shields.io/badge/Node.js-22%2B-339933?style=for-the-badge&logo=nodedotjs&logoColor=white" alt="Node.js 22+">
+    <img src="https://img.shields.io/badge/SQLite-node%3Asqlite-003B57?style=for-the-badge&logo=sqlite&logoColor=white" alt="SQLite">
+    <img src="https://img.shields.io/badge/Docker-amd64%20%7C%20arm64-2496ED?style=for-the-badge&logo=docker&logoColor=white" alt="Docker">
+    <img src="https://img.shields.io/badge/Umbrel_OS-Supported-5352ED?style=for-the-badge&logo=umbrel&logoColor=white" alt="Umbrel OS">
+  </p>
+</a>
 
 ---
 
